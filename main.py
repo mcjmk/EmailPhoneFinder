@@ -1,13 +1,28 @@
-#! python3
-# EmailPhoneScraper.py - this script searches for email addresses and phone numbers in the clipboard content,
-# extract them using regular expressions, and copies the results back to the clipboard.
-# Currently, the script is set to recognize phone numbers following Polish conventions.
+#!/usr/bin/env python3
+# Search for email addresses and phone numbers in the clipboard.
+# Currently, only Polish phone number conventions are supported.
 
 import sys
-import pyperclip
 import re
+import pyperclip
 
-if __name__ == '__main__':
+EMAIL_REGEX = re.compile(
+    r"_*[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*_*"
+)
+
+# Polish conventions
+PHONE_NUMBER_REGEX = r".*(?:\+?48)?(?:\s*\d{3}[\s-]*){3}.*"
+
+
+def get_emails(string):
+    return re.findall(EMAIL_REGEX, string)
+
+
+def get_phone_numbers(string):
+    return re.findall(PHONE_NUMBER_REGEX, string)
+
+
+if __name__ == "__main__":
 
     try:
         text = str(pyperclip.paste())
@@ -15,49 +30,13 @@ if __name__ == '__main__':
         print(f"Error accessing clipboard: {e}")
         sys.exit(1)
 
-    emailRegex = re.compile(r'''
-        ([a-zA-Z0-9._%+=-]+)  # username
-        (@)                   # @ symbol
-        ([a-zA-Z0-9-.]+)       # domain 
-        (\.[a-zA-Z0-9]+)+        # dot-something 
-        ''', re.VERBOSE)
+    get_phone_numbers(text)
+    if emails := get_emails(text):
+        print("EMAILS: ")
+        for email in emails:
+            print(email)
 
-    # Polish conventions
-    numbersRegex = re.compile(r'''
-        # mobile phone
-        (\d{3})            # 3 digits
-        ([\s-])?           # optional separator 
-        (\d{3})            # 3 digits
-        ([\s-])?           # optional separator 
-        (\d{3})            # 3 digits 
-
-        |                  # alternative 
-
-        # landline phone
-        (\d{2}|\(\d{2}\))?    # area code - 2 digits
-        ([\s-])?              # optional separator 
-        (\d{3})               # 3 digits
-        ([\s-])?               # optional separator   
-        (\d{2})               # 2 digits
-        ([\s-])?               # optional separator  
-        (\d{2})               # 2 digits  
-        ''', re.VERBOSE)
-
-    resultEmails = "\n".join("".join(email) for email in emailRegex.findall(text))
-    resultNumbers = "\n".join("".join(number) for number in numbersRegex.findall(text))
-
-    results = []
-    if resultEmails:
-        results.append(resultEmails)
-
-    if resultNumbers:
-        results.append(resultNumbers)
-
-    result = "\n".join(results)
-
-    if not result:
-        print("No email addresses or phone numbers were found.")
-
-    else:
-        pyperclip.copy(result)
-        print(f"Found and copied to clipboard:\n{result}")
+    if phone_numbers := get_phone_numbers(text):
+        print("PHONE NUMBERS: ")
+        for number in phone_numbers:
+            print(number)
